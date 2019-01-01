@@ -88,7 +88,7 @@ sub SMAUtils_Get($$) {
 
 	if ( $opt eq "data" ) {
 
-		# "1" ist Statusbit f�r manuelle Abfrage
+		# "1" is status bit for manual query.
 		Inverter_CallData( $hash, 1 );
 	} else {
 		return "$getlist";
