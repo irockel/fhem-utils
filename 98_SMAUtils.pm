@@ -1,10 +1,10 @@
 #################################################################
 #
-# A module to plot Inverterdata from SMA - Solar Technology
+# A module to plot inverter data from SMA - Solar Technology
 #
 # Originally written 2013 by Sven Koethe <sven at koethe-privat dot de>
 #
-# The modul uses on SBFSpot - Linux Tool
+# The modul uses SBFSpot for communication with the Inverter - Linux Tool
 #
 #################################################################
 # Definition: define <name> SMAUtils <address> <path-to-sbfspot>
@@ -351,4 +351,92 @@ sub ParseInverterdata_Aborted($) {
 }
 
 1;
+
+=pod
+=item device
+=item summary    Collects data from SMA Inverters using SBFspot 
+=item summary_DE Sammelt Daten von SMA Invertern mittels SBFspot
+=begin html
+
+<a name="SMAUtils"></a>
+<h3>SMAUtils</h3>
+<ul>
+  Module for SMA Inverters for collcting data with the helper utility SBFspot.
+  <br><br>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; SMAUtils address path-to-sbfspot </code><br>
+    <br>
+      &lt;address&gt; either defines the bluetooth or ip address
+	  &lt;path-to-sbfspot&gt; defines the path to the SBFspot utility.
+ 
+      Example for bluetooth^: <br>
+    <code>define myInverter SMAUtils 00:80:25:A5:10:93 /opt/fhem/SBFspot/SBFspot</code>
+      <br>
+    <br>
+  </ul>
+  <b>Attributes</b>
+  <ul><li>
+    <code>interval</code><br>
+	  Defines (in seconds) how often the data from the inverter is requested. 
+      </li><li>
+    <code>mode</code><br>
+	  The values <code>manual</code> or <code>automatic</code> are valid. In mode <code>manual</code> 
+	  the data needs to be requested by using <code>get data</code>. In mode <code>automatic</code> 
+	  the data is requested automatically as defined by the <code>interval</code> attribute.
+      </li><li>
+   <code>disable</code><br>
+      If the value is <code>1</code> the device is deactivated and esp. no automatic data 
+	  requests are performed.
+      </li><li>
+   <code>timeout</code><br>
+      Defines how many seconds will be waited for a response using SBFspot (default: 30 seconds).
+      </li>
+  <br>
+</ul></ul>
+
+=end html
+
+=begin html_DE
+
+<a name="SMAUtils"></a>
+<h3>SMAUtils</h3>
+<ul>
+  Modul für SMA Inverter, um deren Daten mit dem zusätzlichen Hilfsprogramm SBFspot abzufragen.
+  <br><br>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; SMAUtils address path-to-sbfspot </code><br>
+    <br>
+      &lt;address&gt; gibt die Bluetooth oder IP-Adresse an.
+	  &lt;path-to-sbfspot&gt; gibt den Pfad zum externen SBFspot an.
+ 
+      Beispiel: <br>
+    <code>define myInverter SMAUtils 00:80:25:A5:10:93 /opt/fhem/SBFspot/SBFspot</code>
+      <br>
+    <br>
+  </ul>
+  <b>Attribute</b>
+  <ul><li>
+    <code>interval</code><br>
+	  Gibt an (in Sekunden), wie häufig die Werte vom Inverter abgefragt werden sollen.
+      </li><li>
+    <code>mode</code><br>
+	  Erlaubt sind die Werte <code>manual</code> oder <code>automatic</code>. Im Modus <code>manual</code> müssen die Daten 
+	  explizit per <code>get data</code> geholt werden. Im Modus <code>automatic</code> werde sie gemäß des angegeben
+	  Intervalls abgeholt
+      </li><li>
+   <code>disable</code><br>
+      Beim Wert <code>1</code> ist das device abgeschaltet und es werden insbes. keine automatischen 
+	  Datenabrufe durchgeführt.
+      </li><li>
+   <code>timeout</code><br>
+      Gibt an, wieviel Sekunden auf Antwort mittels SBFspot gewartet wird (Standardwert: 30 Sekunden).
+      </li>
+  <br>
+</ul></ul>
+
+=end html_DE
+
+=cut
 
