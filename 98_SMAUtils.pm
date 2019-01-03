@@ -108,14 +108,23 @@ sub SMAUtils_Attr {
 	my $hash = $defs{$name};
 	if ($cmd eq "set") {
 		if ( $aName eq "mode" ) {
-			readingsSingleUpdate( $hash, "state", $aVal, 1 );
-		} elsif ( $aName eq "interval" ) {
-			delete( $hash->{helper}{RUNNING_PID} )
-			  if ( defined( $hash->{helper}{RUNNING_PID} ) );
-			RemoveInternalTimer($hash);
+			readingsSingleUpdate( $hash, "mode", $aVal, 1 );
+			if ( (AttrVal( $name, "interval", undef) ne undef) && ($aVal eq "automatic")) {
+				SMAUtils_DeleteCurrentInternalTimer($hash);
 
+				my $interval = AttrVal( $name, "interval", undef);
+
+				# "0" is call mode
+				InternalTimer( gettimeofday() + $interval,"Inverter_CallData", $hash, 0 );
+			} elsif ($aVal eq "manual") {
+				SMAUtils_DeleteCurrentInternalTimer($hash);
+			}
+		} elsif ( $aName eq "interval" ) {
+			readingsSingleUpdate( $hash, "interval", $aVal, 1 );
+			SMAUtils_DeleteCurrentInternalTimer($hash);
 			# Start call timer.
 			if ( AttrVal( $name, "mode", "automatic" ) eq "automatic" ) {
+
 				# "0" is call mode
 				InternalTimer( gettimeofday() + $aVal,"Inverter_CallData", $hash, 0 );
 			}
@@ -125,6 +134,20 @@ sub SMAUtils_Attr {
 			RemoveInternalTimer($hash);
 		}
 	}
+
+	return undef;
+}
+
+#####################################
+# Delete any current active timer 
+# data
+#####################################
+sub SMAUtils_DeleteCurrentInternalTimer($) {
+	my ($hash) = @_;
+
+	delete( $hash->{helper}{RUNNING_PID} )
+	  if ( defined( $hash->{helper}{RUNNING_PID} ) );
+	RemoveInternalTimer($hash);
 
 	return undef;
 }
@@ -185,7 +208,7 @@ sub Get_Inverterdata {
 
 	Log3 $name, 4, "$hash->{NAME} start BlockingCall Get_Inverterdata";
 
-    my $toolpath = $hash->{TOOLPATH};
+	my $toolpath = $hash->{TOOLPATH};
 	$data .= qx( $toolpath -nocsv -nosql -v );
 
 	Log3 $name, 5,"$hash->{NAME} BlockingCall Get_Inverterdata Data returned:" . "\n". "$data";
