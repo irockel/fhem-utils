@@ -41,7 +41,7 @@ sub SMAUtils_Initialize($) {
 	$hash->{GetFn}    = "SMAUtils_Get";
 	$hash->{UndefFn}  = "SMAUtils_Undef";
 	$hash->{AttrFn}   = "SMAUtils_Attr";
-	$hash->{AttrList} = "interval ". "timeout ". "mode:manual,automatic ". "disable:0,1 ". $readingFnAttributes;
+	$hash->{AttrList} = "interval ". "timeout ". "mode:manual,automatic ". "disable:0,1 ". "suppressSleep:0,1 ". $readingFnAttributes;
 }
 
 ###################################
@@ -123,7 +123,7 @@ sub SMAUtils_Attr {
 			readingsSingleUpdate( $hash, "interval", $aVal, 1 );
 			SMAUtils_DeleteCurrentInternalTimer($hash);
 			# Start call timer.
-			if ( AttrVal( $name, "mode", "automatic" ) eq "automatic" ) {
+			if ( AttrVal( $name, "mode", "manual" ) eq "automatic" ) {
 
 				# "0" is call mode
 				InternalTimer( gettimeofday() + $aVal,"Inverter_CallData", $hash, 0 );
@@ -189,7 +189,7 @@ sub Inverter_CallData($$) {
 		Log3 $name, 5, "$hash->{NAME} - is currently disabled";
 	}
 
-	if ( AttrVal( $name, "mode", "automatic" ) eq "automatic" ) {
+	if ( AttrVal( $name, "mode", "manual" ) eq "automatic" ) {
 		RemoveInternalTimer( $hash, "Inverter_CallData" );
 		InternalTimer( gettimeofday() + AttrVal( $name, "interval", undef ),"Inverter_CallData", $hash, 0 );
 	}
@@ -209,7 +209,13 @@ sub Get_Inverterdata {
 	Log3 $name, 4, "$hash->{NAME} start BlockingCall Get_Inverterdata";
 
 	my $toolpath = $hash->{TOOLPATH};
-	$data .= qx( $toolpath -nocsv -nosql -v );
+
+	my $finq = "";
+	if ( AttrVal( $name, "suppressSleep", "0" ) eq "1" ) {
+		$finq = " -finq ";
+	}
+
+	$data .= qx( $toolpath $finq -nocsv -nosql -v );
 
 	Log3 $name, 5,"$hash->{NAME} BlockingCall Get_Inverterdata Data returned:" . "\n". "$data";
 
@@ -350,7 +356,7 @@ sub Parse_Inverterdata($) {
 		$i++;
 	}
 	my $mode =
-	  ( AttrVal( $name, "mode", "automatic" ) eq "automatic" )
+	  ( AttrVal( $name, "mode", "manual" ) eq "automatic" )
 	  ? "automatic"
 	  : "manual";
 	readingsBulkUpdate( $hash, "state",   $mode );
@@ -391,7 +397,7 @@ sub ParseInverterdata_Aborted($) {
     <code>define &lt;name&gt; SMAUtils address path-to-sbfspot </code><br>
     <br>
       &lt;address&gt; either defines the bluetooth or ip address
-	  &lt;path-to-sbfspot&gt; defines the path to the SBFspot utility.
+	  &lt;path-to-sbfspot&gt; defines the path to the SBFspot utility including the filename.
  
       Example for bluetooth^: <br>
     <code>define myInverter SMAUtils 00:80:25:A5:10:93 /opt/fhem/SBFspot/SBFspot</code>
@@ -414,6 +420,10 @@ sub ParseInverterdata_Aborted($) {
       </li><li>
    <code>timeout</code><br>
       Defines how many seconds will be waited for a response using SBFspot (default: 30 seconds).
+      </li><li>
+   <code>suppressSleep</code><br>
+      Defines if data should also be requested at night. SBFspot uses longitude and latitude parameters
+	  in SBFspot.cfg to decide when it's night.
       </li>
   <br>
 </ul></ul>
@@ -432,7 +442,7 @@ sub ParseInverterdata_Aborted($) {
     <code>define &lt;name&gt; SMAUtils address path-to-sbfspot </code><br>
     <br>
       &lt;address&gt; gibt die Bluetooth oder IP-Adresse an.
-	  &lt;path-to-sbfspot&gt; gibt den Pfad zum externen SBFspot an.
+	  &lt;path-to-sbfspot&gt; gibt den Pfad zum externen SBFspot inklusive Dateiname an. 
  
       Beispiel: <br>
     <code>define myInverter SMAUtils 00:80:25:A5:10:93 /opt/fhem/SBFspot/SBFspot</code>
@@ -455,6 +465,10 @@ sub ParseInverterdata_Aborted($) {
       </li><li>
    <code>timeout</code><br>
       Gibt an, wieviel Sekunden auf Antwort mittels SBFspot gewartet wird (Standardwert: 30 Sekunden).
+      </li><li>
+   <code>suppressSleep</code><br>
+      Gibt an, ob auch im Dunkeln Daten von SBFspot geholt werden sollen. SBFspot entscheidet anhand der longitude und
+	  latitude in der SBFspot.cfg wann Tag und wann Nacht ist.
       </li>
   <br>
 </ul></ul>
