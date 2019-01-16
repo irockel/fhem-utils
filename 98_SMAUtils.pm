@@ -133,6 +133,10 @@ sub SMAUtils_Attr {
 		if ( $aName eq "interval") {
 			RemoveInternalTimer($hash);
 		}
+		if ( $aName eq "mode") {
+			# default is "manual", therefore delete any active timer
+			RemoveInternalTimer($hash);
+		}
 	}
 
 	return undef;
