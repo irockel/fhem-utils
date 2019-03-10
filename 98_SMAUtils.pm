@@ -41,7 +41,7 @@ sub SMAUtils_Initialize($) {
 	$hash->{GetFn}    = "SMAUtils_Get";
 	$hash->{UndefFn}  = "SMAUtils_Undef";
 	$hash->{AttrFn}   = "SMAUtils_Attr";
-	$hash->{AttrList} = "interval ". "timeout ". "mode:manual,automatic ". "disable:0,1 ". "suppressSleep:0,1 ". $readingFnAttributes;
+	$hash->{AttrList} = "interval ". "timeout ". "disable:0,1 ". "suppressSleep:0,1 ". $readingFnAttributes;
 }
 
 ###################################
@@ -59,6 +59,8 @@ sub SMAUtils_Define($$) {
 
 	my $address = $a[2];
 	$hash->{TOOLPATH} = $a[3];
+
+	$hash->{STATE} = "initialized";
 
 	unless (
 		( $address =~ /^\s*([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\s*$/ )
@@ -107,35 +109,31 @@ sub SMAUtils_Attr {
 	# aName and aVal are Attribute name and value
 	my $hash = $defs{$name};
 	if ($cmd eq "set") {
-		if ( $aName eq "mode" ) {
-			readingsSingleUpdate( $hash, "mode", $aVal, 1 );
-			if ( (AttrVal( $name, "interval", undef) ne undef) && ($aVal eq "automatic")) {
+		if ( $aName eq "interval" ) {
+			if ( !AttrVal( $name, "disable", undef )) {
+				readingsSingleUpdate( $hash, "interval", $aVal, 1 );
 				SMAUtils_DeleteCurrentInternalTimer($hash);
-
-				my $interval = AttrVal( $name, "interval", undef);
 
 				# "0" is call mode
-				InternalTimer( gettimeofday() + $interval,"Inverter_CallData", $hash, 0 );
-			} elsif ($aVal eq "manual") {
-				SMAUtils_DeleteCurrentInternalTimer($hash);
+				InternalTimer( gettimeofday() + $aVal,"Inverter_CallData", $hash, 0 );
 			}
-		} elsif ( $aName eq "interval" ) {
-			readingsSingleUpdate( $hash, "interval", $aVal, 1 );
-			SMAUtils_DeleteCurrentInternalTimer($hash);
-			# Start call timer.
-			if ( AttrVal( $name, "mode", "manual" ) eq "automatic" ) {
-
-				# "0" is call mode
+		} elsif ( $aName eq "disable") {
+			if ($aVal eq "1") {
+				SMAUtils_DeleteCurrentInternalTimer($hash);
+			} else {
+				readingsSingleUpdate( $hash, "interval", $aVal, 1 );
 				InternalTimer( gettimeofday() + $aVal,"Inverter_CallData", $hash, 0 );
 			}
 		}
 	} elsif ($cmd eq "del") {
 		if ( $aName eq "interval") {
-			RemoveInternalTimer($hash);
-		}
-		if ( $aName eq "mode") {
-			# default is "manual", therefore delete any active timer
-			RemoveInternalTimer($hash);
+			SMAUtils_DeleteCurrentInternalTimer($hash);
+		} elsif ( $aName eq "disable") {
+			my $interVal = AttrVal( $name, "interval", undef );
+			if ($interVal > 0) {
+				readingsSingleUpdate( $hash, "interval", $aVal, 1 );
+				InternalTimer( gettimeofday() + $interVal, "Inverter_CallData", $hash, 0 );
+			}
 		}
 	}
 
@@ -193,7 +191,7 @@ sub Inverter_CallData($$) {
 		Log3 $name, 5, "$hash->{NAME} - is currently disabled";
 	}
 
-	if ( AttrVal( $name, "mode", "manual" ) eq "automatic" ) {
+	if ( AttrVal( $name, "interval", undef ) > 0 ) {
 		RemoveInternalTimer( $hash, "Inverter_CallData" );
 		InternalTimer( gettimeofday() + AttrVal( $name, "interval", undef ),"Inverter_CallData", $hash, 0 );
 	}
@@ -359,11 +357,7 @@ sub Parse_Inverterdata($) {
 
 		$i++;
 	}
-	my $mode =
-	  ( AttrVal( $name, "mode", "manual" ) eq "automatic" )
-	  ? "automatic"
-	  : "manual";
-	readingsBulkUpdate( $hash, "state",   $mode );
+	readingsBulkUpdate( $hash, "state",   "active" );
 	readingsBulkUpdate( $hash, "summary", "enabled" );
 	readingsEndUpdate( $hash, 1 );
 
@@ -411,12 +405,8 @@ sub ParseInverterdata_Aborted($) {
   <b>Attributes</b>
   <ul><li>
     <code>interval</code><br>
-	  Defines (in seconds) how often the data from the inverter is requested. 
-      </li><li>
-    <code>mode</code><br>
-	  The values <code>manual</code> or <code>automatic</code> are valid. In mode <code>manual</code> 
-	  the data needs to be requested by using <code>get data</code>. In mode <code>automatic</code> 
-	  the data is requested automatically as defined by the <code>interval</code> attribute.
+	  Defines (in seconds) how often the data from the inverter is requested. If this is undefined
+	  or set to zero, no automatic updates are done.
       </li><li>
    <code>disable</code><br>
       If the value is <code>1</code> the device is deactivated and esp. no automatic data 
@@ -456,12 +446,8 @@ sub ParseInverterdata_Aborted($) {
   <b>Attribute</b>
   <ul><li>
     <code>interval</code><br>
-	  Gibt an (in Sekunden), wie häufig die Werte vom Inverter abgefragt werden sollen.
-      </li><li>
-    <code>mode</code><br>
-	  Erlaubt sind die Werte <code>manual</code> oder <code>automatic</code>. Im Modus <code>manual</code> müssen die Daten 
-	  explizit per <code>get data</code> geholt werden. Im Modus <code>automatic</code> werde sie gemäß des angegeben
-	  Intervalls abgeholt
+	  Gibt an (in Sekunden), wie häufig die Werte vom Inverter abgefragt werden sollen. Ist der Wert 0 oder 
+	  undefiniert, werden die Werte nicht automatisch aktualisiert
       </li><li>
    <code>disable</code><br>
       Beim Wert <code>1</code> ist das device abgeschaltet und es werden insbes. keine automatischen 
